@@ -3,6 +3,10 @@ import cors from 'cors'
 import express from 'express'
 import { connectDatabase } from './config/database.js'
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js'
+import authRoutes from './routes/authRoutes.js'
+import courseRoutes from './routes/courseRoutes.js'
+import dashboardRoutes from './routes/dashboardRoutes.js'
+import enrollmentRoutes from './routes/enrollmentRoutes.js'
 import healthRoutes from './routes/healthRoutes.js'
 
 const app = express()
@@ -17,14 +21,22 @@ app.use(cors({
     callback(null, !origin || allowedOrigins.includes(origin))
   },
 }))
-app.use(express.json())
+app.disable('x-powered-by')
+app.use(express.json({ limit: '32kb' }))
 app.use('/api', healthRoutes)
+app.use('/api/auth', authRoutes)
+app.use('/api/courses', courseRoutes)
+app.use('/api/enrollments', enrollmentRoutes)
+app.use('/api', dashboardRoutes)
 app.use(notFoundHandler)
 app.use(errorHandler)
 
 async function startServer() {
   if (!Number.isInteger(port) || port < 1 || port > 65535) {
     throw new Error(`Invalid PORT value: ${process.env.PORT}`)
+  }
+  if (!process.env.JWT_SECRET || process.env.JWT_SECRET.trim().length < 32) {
+    throw new Error('JWT_SECRET must be configured with at least 32 characters')
   }
 
   await connectDatabase()
